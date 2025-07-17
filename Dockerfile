@@ -1,17 +1,10 @@
 FROM maven:3.9.6-eclipse-temurin-11
 
-# Step 1: Preload Jenkins plugin packaging requirements
-RUN mvn -B org.apache.maven.plugins:maven-dependency-plugin:3.6.0:get \
-        -Dartifact=org.jenkins-ci.plugins:plugin:4.64:pom && \
-    mvn -B org.apache.maven.plugins:maven-dependency-plugin:3.6.0:get \
-        -Dartifact=org.jenkins-ci.tools:maven-hpi-plugin:3.40 && \
-    mvn -B org.apache.maven.plugins:maven-dependency-plugin:3.6.0:get \
-        -Dartifact=org.jenkins-ci.tools:maven-hpi-plugin:3.40:pom && \
-    echo "✅ Jenkins plugin dependencies preloaded."
+# Add Jenkins plugin repo to Maven settings
+COPY .mvn.settings.xml /usr/share/maven/ref/settings.xml
 
-# Step 2: Copy plugin code
 WORKDIR /app
 COPY . .
 
-# Step 3: Build plugin
+# Build with correct repo access
 RUN mvn -B clean install -DskipTests
