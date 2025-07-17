@@ -1,15 +1,7 @@
-FROM maven:3.9.6-eclipse-temurin-11
+FROM jenkins/plugin
 
 WORKDIR /app
 
-# Optional: Use Jenkins Maven mirror if network issues exist
-COPY .mvn.settings.xml /usr/share/maven/ref/settings.xml
+COPY . /app
 
-# Pre-install maven-hpi-plugin to recognize <packaging>hpi</packaging>
-RUN mvn -B org.jenkins-ci.tools:maven-hpi-plugin:3.4:hpi || true
-
-# Now copy source after plugin is cached
-COPY . .
-
-# Now build without tests
-RUN mvn -B clean install -DskipTests
+RUN mvn clean install -Dchangelist=999999-SNAPSHOT -DskipTests
