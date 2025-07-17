@@ -1,20 +1,15 @@
 FROM maven:3.9.6-eclipse-temurin-11 AS builder
 
-# Install tools if needed (optional)
-RUN apt-get update && apt-get install -y git curl unzip && rm -rf /var/lib/apt/lists/*
+# Step 1: Preload Jenkins plugin parent POM and hpi packaging
+RUN mvn -B org.apache.maven.plugins:maven-dependency-plugin:3.6.0:get \
+        -Dartifact=org.jenkins-ci.plugins:plugin:4.64:pom && \
+    mvn -B org.apache.maven.plugins:maven-dependency-plugin:3.6.0:get \
+        -Dartifact=org.jenkins-ci.tools:maven-hpi-plugin:3.40:pom && \
+    mvn -B org.apache.maven.plugins:maven-plugin-plugin:3.6.0:help || true
 
-# Pre-fetch required POMs so Maven understands 'hpi' packaging and BOM
-RUN mvn org.apache.maven.plugins:maven-dependency-plugin:3.6.0:get \
-      -Dartifact=org.jenkins-ci.plugins:plugin:4.64:pom && \
-    mvn org.apache.maven.plugins:maven-dependency-plugin:3.6.0:get \
-      -Dartifact=io.jenkins.tools.bom:bom-2.440.x:4034.vd278c5a_2d8a_0:pom || true
-
-# Create app workspace
+# Step 2: Create workspace and copy plugin code
 WORKDIR /app
 COPY . .
 
-# Run Maven build
+# Step 3: Build Jenkins plugin
 RUN mvn -B clean install -DskipTests
-
-# Optional: For debugging only
-# RUN find /root/.m2 -name '*.hpi'
