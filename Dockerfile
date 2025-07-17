@@ -1,24 +1,20 @@
-# Stage 1: Build plugin with Maven and Java 11
 FROM maven:3.9.6-eclipse-temurin-11 AS builder
 
-# Set working directory
-WORKDIR /app
+# Install tools if needed (optional)
+RUN apt-get update && apt-get install -y git curl unzip && rm -rf /var/lib/apt/lists/*
 
-# Copy source code
+# Pre-fetch required POMs so Maven understands 'hpi' packaging and BOM
+RUN mvn org.apache.maven.plugins:maven-dependency-plugin:3.6.0:get \
+      -Dartifact=org.jenkins-ci.plugins:plugin:4.64:pom && \
+    mvn org.apache.maven.plugins:maven-dependency-plugin:3.6.0:get \
+      -Dartifact=io.jenkins.tools.bom:bom-2.440.x:4034.vd278c5a_2d8a_0:pom || true
+
+# Create app workspace
+WORKDIR /app
 COPY . .
 
-# Ensure Git is installed for plugin SCM tagging
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+# Run Maven build
+RUN mvn -B clean install -DskipTests
 
-# Build the Jenkins plugin without running tests
-RUN mvn clean install -DskipTests
-
-# Stage 2: Runtime stage (if needed)
-# OR extract the .hpi from the build stage
-FROM eclipse-temurin:11-jre
-
-# Copy the built plugin .hpi file
-COPY --from=builder /app/target/*.hpi /log-cli.hpi
-
-# Optional: default CMD
-CMD ["echo", "Built log-cli.hpi is available at /log-cli.hpi"]
+# Optional: For debugging only
+# RUN find /root/.m2 -name '*.hpi'
